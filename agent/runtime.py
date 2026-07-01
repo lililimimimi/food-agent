@@ -19,10 +19,14 @@ SYSTEM_PROMPT = """你是一个专业的食物决策助手,帮助用户解决"�
 
 决策原则:
 1. 先了解用户的约束条件(预算/天气/口味偏好)
-2. 如果用户提到城市或天气,先查天气
-3. 根据天气和约束条件筛选合适的食物
-4. 用random_pick随机推荐,增加趣味性
-5. 推荐后询问用户是否要记录到今天的饮食历史
+2. 如果用户提到城市,必须先调用get_weather查天气
+3. 有了天气和约束条件后,必须调用random_pick工具推荐食物
+4. 禁止自己编造食物推荐,所有推荐必须来自random_pick工具的结果
+5. 推荐后询问用户是否要用add_todo记录到今天的饮食历史
+
+重要:
+- 推荐食物时永远调用random_pick,不要自己列举食物
+- 用户说"换一个"时,再次调用random_pick
 
 回复风格:
 - 轻松活泼,像朋友推荐一样自然
@@ -33,13 +37,9 @@ SYSTEM_PROMPT = """你是一个专业的食物决策助手,帮助用户解决"�
 def run_agent(session_id: str, user_input: str) -> str:
     session = get_session(session_id)
 
-    # 压缩过长的context
     summarize_if_needed(session_id)
-
-    # 记录用户输入
     add_message(session_id, "user", user_input)
 
-    # 构建messages,第一条是system prompt
     history = build_context(session_id)
     messages = [{"role": "system", "content": SYSTEM_PROMPT}] + history
     tools = get_tools_schema()
@@ -53,11 +53,11 @@ def run_agent(session_id: str, user_input: str) -> str:
         response = call_llm(messages, tools)
         message = response.choices[0].message
 
-        if message.content:
-            print(f"[Thought] {message.content}")
-
         if message.tool_calls:
-            # 把assistant消息加入messages
+            # 有工具调用时才打印Thought
+            if message.content:
+                print(f"[Thought] {message.content}")
+
             messages.append({
                 "role": "assistant",
                 "content": message.content or "",
@@ -90,8 +90,8 @@ def run_agent(session_id: str, user_input: str) -> str:
                 })
 
         else:
+            # 纯对话直接返回,不打印多余内容
             final_answer = message.content
-            print(f"[Final] {final_answer}")
             add_message(session_id, "assistant", final_answer)
             return final_answer
 
