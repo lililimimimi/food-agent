@@ -2,12 +2,17 @@
 
 基于 LLM + Tool-Calling 的轻量级智能食物决策系统，帮你解决每天"今天吃什么"的问题。
 
+## 演示视频
+
+[点击查看录屏演示](https://drive.google.com/file/d/1EpLRgp0beWW6Y7owdQVKQdkmof-3a5WK/view?usp=sharing)
+
 ## 技术栈
 
 - **LLM**: DeepSeek-V3（通过 SiliconFlow API 调用）
 - **Agent Runtime**: 自实现 ReAct Loop
 - **天气 API**: wttr.in
 - **语言**: Python 3.12
+
 
 ---
 
